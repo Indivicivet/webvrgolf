@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebVR Golf Prototype</title>
+    
+    <!-- Google Fonts for UI -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- A-Frame Core and Physics/Environment Libraries -->
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.2.2/dist/aframe-physics-system.min.js"></script>
+    <script src="https://unpkg.com/aframe-environment-component@1.3.3/dist/aframe-environment-component.min.js"></script>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            background-color: #000;
+        }
+
+        /* Premium UI Overlay using Glassmorphism */
+        #ui-overlay {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            z-index: 100;
+            pointer-events: none; /* Let clicks pass through to the canvas */
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 24px;
+            color: #ffffff;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            max-width: 320px;
+            animation: fadeIn 1s ease-out;
+        }
+
+        .glass-panel h1 {
+            margin: 0 0 12px 0;
+            font-size: 26px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #fff 0%, #a5d6a7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .glass-panel p {
+            margin: 0 0 16px 0;
+            font-size: 14px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .instruction-badge {
+            display: flex;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 10px;
+        }
+
+        .instruction-badge strong {
+            color: #a5d6a7;
+            margin-right: 8px;
+            font-weight: 600;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Hide UI when entering VR */
+        .a-enter-vr #ui-overlay {
+            display: none;
+        }
+    </style>
+
+    <script>
+        // Custom component to handle hitting the ball with the VR club
+        AFRAME.registerComponent('golf-club', {
+            schema: {
+                ball: { type: 'selector', default: '#ball' },
+                multiplier: { type: 'number', default: 6.0 }
+            },
+            init: function () {
+                this.velocity = new THREE.Vector3();
+                this.lastPosition = new THREE.Vector3();
+                this.clubHead = new THREE.Vector3();
+                this.ballPosition = new THREE.Vector3();
+                this.canHit = true;
+            },
+            tick: function (time, timeDelta) {
+                if (!timeDelta || !this.data.ball || !this.canHit) return;
+                
+                // Get world position of club head
+                this.el.object3D.getWorldPosition(this.clubHead);
+                
+                if (this.lastPosition.length() === 0) {
+                    this.lastPosition.copy(this.clubHead);
+                    return;
+                }
+                
+                // Calculate velocity vector (m/s)
+                this.velocity.subVectors(this.clubHead, this.lastPosition).divideScalar(timeDelta / 1000);
+                this.lastPosition.copy(this.clubHead);
+                
+                // Ensure ball has physics body
+                if (!this.data.ball.body) return;
+                this.data.ball.object3D.getWorldPosition(this.ballPosition);
+                
+                const distance = this.clubHead.distanceTo(this.ballPosition);
+                const speed = this.velocity.length();
+                
+                // Collision threshold (0.15m) and minimum speed to register a hit
+                if (distance < 0.15 && speed > 0.8) {
+                    const ballBody = this.data.ball.body;
+                    const mass = ballBody.mass;
+                    
+                    // Calculate force. Add artificial loft based on forward speed for a better trajectory.
+                    const forwardSpeed = Math.abs(this.velocity.z);
+                    const force = new CANNON.Vec3(
+                        this.velocity.x * this.data.multiplier * mass,
+                        (this.velocity.y + forwardSpeed * 1.8) * this.data.multiplier * mass, 
+                        this.velocity.z * this.data.multiplier * mass
+                    );
+                    
+                    ballBody.applyImpulse(force, new CANNON.Vec3(0, 0, 0));
+                    
+                    // Prevent multi-hits during the same swing motion
+                    this.canHit = false;
+                    setTimeout(() => { this.canHit = true; }, 1000);
+                }
+            }
+        });
+
+        // Desktop fallback: Click to shoot
+        AFRAME.registerComponent('desktop-golf-shot', {
+            init: function () {
+                this.el.addEventListener('click', () => {
+                    if (this.el.body) {
+                        // Reset velocities to prevent compounding forces
+                        this.el.body.velocity.set(0, 0, 0);
+                        this.el.body.angularVelocity.set(0, 0, 0);
+                        
+                        // Apply a satisfying arc impulse
+                        const force = new CANNON.Vec3(
+                            (Math.random() - 0.5) * 0.3, // Slight horizontal variance
+                            3.5,                         // Upward loft
+                            -7.0                         // Forward power
+                        );
+                        this.el.body.applyImpulse(force, new CANNON.Vec3(0, 0, 0));
+                    }
+                });
+            }
+        });
+
+        // Reset ball if it falls off the map or takes too long to stop
+        AFRAME.registerComponent('ball-reset', {
+            init: function () {
+                this.startPos = new CANNON.Vec3(0, 0.15, -0.5);
+            },
+            tick: function () {
+                if (this.el.body && this.el.body.position.y < -3) {
+                    this.el.body.position.copy(this.startPos);
+                    this.el.body.velocity.set(0, 0, 0);
+                    this.el.body.angularVelocity.set(0, 0, 0);
+                }
+            }
+        });
+    </script>
+</head>
+<body>
+
+    <!-- 2D UI Overlay -->
+    <div id="ui-overlay">
+        <div class="glass-panel">
+            <h1>WebVR Golf</h1>
+            <p>Welcome to the tee box. Enjoy the view of the course and practice your swing.</p>
+            
+            <div class="instruction-badge">
+                <strong>VR</strong> Swing your right controller to hit the ball.
+            </div>
+            
+            <div class="instruction-badge">
+                <strong>Desktop</strong> Click the ball directly to take a swing.
+            </div>
+        </div>
+    </div>
+
+    <!-- 3D Scene Setup -->
+    <a-scene physics="debug: false; gravity: -9.8">
+        
+        <!-- Environment (Golf Course Theme) -->
+        <a-entity environment="preset: forest; groundColor: #387b2b; groundColor2: #2e6623; groundYScale: 2; playArea: 1.5; dressingAmount: 250; skyType: atmosphere; shadow: true"></a-entity>
+
+        <!-- Global Lighting -->
+        <a-light type="directional" position="10 20 10" target="#rig" castShadow="true" intensity="0.9" shadow="cameraVisible: false; mapSize: 2048"></a-light>
+        <a-light type="ambient" intensity="0.4"></a-light>
+
+        <!-- Invisible Physics Ground Plane (to catch the ball smoothly) -->
+        <a-plane static-body position="0 0.01 0" rotation="-90 0 0" width="200" height="200" visible="false"></a-plane>
+
+        <!-- === TEE BOX AREA === -->
+        <a-box position="0 0.01 0" width="3" height="0.02" depth="3" color="#2c5c1e" static-body shadow="receive: true"></a-box>
+        <!-- Tee Markers -->
+        <a-sphere position="-1 0.05 -0.2" radius="0.06" color="#ffffff" static-body shadow="cast: true"></a-sphere>
+        <a-sphere position="1 0.05 -0.2" radius="0.06" color="#ffffff" static-body shadow="cast: true"></a-sphere>
+
+        <!-- Golf Ball -->
+        <a-sphere id="ball" 
+                  dynamic-body="mass: 0.045; shape: sphere; sphereRadius: 0.043; bounce: 0.5; friction: 0.8" 
+                  position="0 0.15 -0.5" 
+                  radius="0.043" 
+                  color="#ffffff" 
+                  shadow="cast: true" 
+                  class="clickable" 
+                  desktop-golf-shot 
+                  ball-reset>
+        </a-sphere>
+        
+        <!-- Wooden Tee -->
+        <a-cylinder position="0 0.05 -0.5" radius="0.01" height="0.1" color="#d2b48c" static-body></a-cylinder>
+
+        <!-- === HOLE 1 (Short Target) === -->
+        <a-entity position="0 0 -40">
+            <!-- Putting Green -->
+            <a-cylinder position="0 0.02 0" radius="5" height="0.01" color="#4bc934" static-body shadow="receive: true"></a-cylinder>
+            <!-- The Hole -->
+            <a-cylinder position="0 0.03 0" radius="0.1" height="0.02" color="#111111"></a-cylinder>
+            <!-- Pin Pole -->
+            <a-cylinder position="0 1 0" radius="0.015" height="2" color="#ffffff" shadow="cast: true"></a-cylinder>
+            <!-- Flag -->
+            <a-triangle position="0.3 1.8 0" vertex-a="0 0.2 0" vertex-b="0 -0.2 0" vertex-c="-0.3 0 0" color="#ff3333" side="double" shadow="cast: true"></a-triangle>
+        </a-entity>
+
+        <!-- === HOLE 2 (Long Target) === -->
+        <a-entity position="-15 0 -90">
+            <!-- Putting Green -->
+            <a-cylinder position="0 0.02 0" radius="7" height="0.01" color="#4bc934" static-body shadow="receive: true"></a-cylinder>
+            <!-- The Hole -->
+            <a-cylinder position="0 0.03 0" radius="0.1" height="0.02" color="#111111"></a-cylinder>
+            <!-- Pin Pole -->
+            <a-cylinder position="0 1 0" radius="0.015" height="2" color="#ffffff" shadow="cast: true"></a-cylinder>
+            <!-- Flag -->
+            <a-triangle position="0.3 1.8 0" vertex-a="0 0.2 0" vertex-b="0 -0.2 0" vertex-c="-0.3 0 0" color="#ffcc00" side="double" shadow="cast: true"></a-triangle>
+        </a-entity>
+
+        <!-- === PLAYER / VR RIG === -->
+        <a-entity id="rig" position="0 0 0.5">
+            <!-- Camera (Head). WASD disabled to restrict walking, leaving only head rotation and physical space movement -->
+            <a-camera position="0 1.6 0" wasd-controls="enabled: false">
+                <!-- Cursor for desktop click interactions -->
+                <a-entity cursor="fuse: false; rayOrigin: mouse;" raycaster="objects: .clickable"></a-entity>
+            </a-camera>
+            
+            <!-- Left Hand Controller (Idle) -->
+            <a-entity laser-controls="hand: left" raycaster="objects: .clickable"></a-entity>
+            
+            <!-- Right Hand Controller (Holding the Golf Club) -->
+            <a-entity laser-controls="hand: right" raycaster="objects: .clickable">
+                
+                <!-- The Golf Club Container. Rotated to match a natural swing grip from the controller -->
+                <a-entity position="0 0 0" rotation="-45 0 0">
+                    <!-- Club Shaft -->
+                    <a-cylinder position="0 -0.6 0" radius="0.008" height="1.2" color="#silver" shadow="cast: true"></a-cylinder>
+                    <!-- Club Grip -->
+                    <a-cylinder position="0 0 0" radius="0.014" height="0.3" color="#222222"></a-cylinder>
+                    <!-- Club Head with the collision/velocity component -->
+                    <a-box position="0 -1.2 0.03" width="0.07" height="0.035" depth="0.05" color="#dddddd" shadow="cast: true" golf-club></a-box>
+                </a-entity>
+
+            </a-entity>
+        </a-entity>
+        
+    </a-scene>
+</body>
+</html>
