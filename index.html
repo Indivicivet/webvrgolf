@@ -118,7 +118,7 @@
 
                 // Ground textures via downloaded assets
                 const tl = new THREE.TextureLoader();
-                const diff = tl.load('assets/grass_diff.jpg');
+                const diff = tl.load('assets/10450_Rectangular_Grass_Patch_L3.123c827d110a-1347-4381-9208-e4f735762647/10450_Rectangular_Grass_Patch_v1_Diffuse.jpg');
                 diff.wrapS = diff.wrapT = THREE.RepeatWrapping;
                 diff.repeat.set(50, 50);
 
@@ -178,57 +178,42 @@
             }
         });
 
-        // Realistic Forest Generator using GLTF
+        // Realistic Forest Generator using OBJ models
         AFRAME.registerComponent('forest-generator', {
             init: function () {
-                const count = 300;
-                
-                // Load the downloaded tree GLTF
-                const loader = new THREE.GLTFLoader();
-                loader.load('assets/tree.glb', (gltf) => {
-                    // Extract mesh from GLTF
-                    let treeMesh = null;
-                    gltf.scene.traverse((child) => {
-                        if (child.isMesh) {
-                            treeMesh = child;
-                            // Make material double sided if leaves
-                            if (child.material) child.material.side = THREE.DoubleSide;
-                        }
-                    });
+                const count = 150; // Reduced count slightly since these are individual entities
+                const el = this.el;
 
-                    if (!treeMesh) return; // Fallback if format is weird
+                // Load tree geometries via standard A-Frame entities using our preloaded assets
+                for (let i = 0; i < count; i++) {
+                    let x = (Math.random() - 0.5) * 200;
+                    let z = (Math.random() - 0.5) * 200;
+                    
+                    if (z < 30 && z > -150 && Math.abs(x) < 20) x = (x > 0) ? x + 20 : x - 20;
+                    if (Math.hypot(x, z) < 10) continue;
 
-                    const instancedMesh = new THREE.InstancedMesh(treeMesh.geometry, treeMesh.material, count);
-                    instancedMesh.castShadow = true;
-                    instancedMesh.receiveShadow = true;
+                    let h = simplex.noise2D(x * 0.015, z * 0.015) * 6;
+                    h += simplex.noise2D(x * 0.05, z * 0.05) * 1.8;
 
-                    const dummy = new THREE.Object3D();
-                    let idx = 0;
-
-                    for (let i = 0; i < count; i++) {
-                        let x = (Math.random() - 0.5) * 200;
-                        let z = (Math.random() - 0.5) * 200;
-                        
-                        if (z < 30 && z > -150 && Math.abs(x) < 20) x = (x > 0) ? x + 20 : x - 20;
-                        if (Math.hypot(x, z) < 10) continue;
-
-                        let h = simplex.noise2D(x * 0.015, z * 0.015) * 6;
-                        h += simplex.noise2D(x * 0.05, z * 0.05) * 1.8;
-
-                        // The specific downloaded tree might be very large or small, adjusting scale
-                        const scale = 0.05 + Math.random() * 0.04; 
-                        
-                        dummy.position.set(x, h, z);
-                        dummy.rotation.set(0, Math.random() * Math.PI, 0);
-                        dummy.scale.set(scale, scale * (0.8 + Math.random() * 0.4), scale);
-                        dummy.updateMatrix();
-                        instancedMesh.setMatrixAt(idx++, dummy.matrix);
+                    // Randomly pick a tree model
+                    const useTree1 = Math.random() > 0.5;
+                    // The specific downloaded tree might be very large or small, adjusting scale
+                    const scale = (useTree1 ? 0.01 : 0.02) + Math.random() * 0.02;
+                    
+                    const treeEl = document.createElement('a-entity');
+                    if (useTree1) {
+                        treeEl.setAttribute('obj-model', 'obj: #tree1-obj; mtl: #tree1-mtl');
+                    } else {
+                        treeEl.setAttribute('obj-model', 'obj: #tree-obj; mtl: #tree-mtl');
                     }
-
-                    instancedMesh.count = idx;
-                    instancedMesh.instanceMatrix.needsUpdate = true;
-                    this.el.setObject3D('mesh', instancedMesh);
-                });
+                    
+                    treeEl.setAttribute('position', `${x} ${h} ${z}`);
+                    treeEl.setAttribute('rotation', `0 ${Math.random() * 360} 0`);
+                    treeEl.setAttribute('scale', `${scale} ${scale * (0.8 + Math.random() * 0.4)} ${scale}`);
+                    treeEl.setAttribute('shadow', 'cast: true; receive: true');
+                    
+                    el.appendChild(treeEl);
+                }
             }
         });
 
@@ -314,6 +299,16 @@
     <div id="crosshair"></div>
 
     <a-scene physics="debug: false; gravity: -9.8; driver: local" renderer="antialias: true; colorManagement: true;">
+        <a-assets>
+            <a-asset-item id="tree-obj" src="assets/Tree/Tree.obj"></a-asset-item>
+            <a-asset-item id="tree-mtl" src="assets/Tree/Tree.mtl"></a-asset-item>
+            <a-asset-item id="tree1-obj" src="assets/Tree1ByTyroSmith/Tree1.obj"></a-asset-item>
+            <a-asset-item id="tree1-mtl" src="assets/Tree1ByTyroSmith/Tree1.mtl"></a-asset-item>
+            <a-asset-item id="circ-grass-obj" src="assets/10438_Circular_Grass_Patch_v1_L3.123c72c0e679-bb4b-4162-b0f0-a70f7575d7d8/10438_Circular_Grass_Patch_v1_iterations-2.obj"></a-asset-item>
+            <a-asset-item id="circ-grass-mtl" src="assets/10438_Circular_Grass_Patch_v1_L3.123c72c0e679-bb4b-4162-b0f0-a70f7575d7d8/10438_Circular_Grass_Patch_v1_iterations-2.mtl"></a-asset-item>
+            <a-asset-item id="rect-grass-obj" src="assets/10450_Rectangular_Grass_Patch_L3.123c827d110a-1347-4381-9208-e4f735762647/10450_Rectangular_Grass_Patch_v1_iterations-2.obj"></a-asset-item>
+            <a-asset-item id="rect-grass-mtl" src="assets/10450_Rectangular_Grass_Patch_L3.123c827d110a-1347-4381-9208-e4f735762647/10450_Rectangular_Grass_Patch_v1_iterations-2.mtl"></a-asset-item>
+        </a-assets>
         
         <!-- Beautiful Skybox via downloaded asset -->
         <a-sky src="assets/sky.jpg"></a-sky>
@@ -331,7 +326,7 @@
         <a-entity forest-generator></a-entity>
 
         <!-- Tee Box Area -->
-        <a-box position="0 0.005 -0.5" width="2" height="0.01" depth="1.5" color="#3a702b" shadow="receive: true"></a-box>
+        <a-entity obj-model="obj: #rect-grass-obj; mtl: #rect-grass-mtl" position="0 0.01 -0.5" scale="0.02 0.02 0.02" shadow="receive: true; cast: true"></a-entity>
         <a-cylinder position="0 0.02 -0.5" radius="0.005" height="0.04" color="#d2b48c"></a-cylinder>
 
         <!-- Golf Ball (Physics heavily tuned for cannon speed) -->
@@ -342,6 +337,8 @@
 
         <!-- The Hole (Z = -80) -->
         <a-entity position="0 0.01 -80">
+            <!-- Circular Grass Patch -->
+            <a-entity obj-model="obj: #circ-grass-obj; mtl: #circ-grass-mtl" position="0 -0.01 0" scale="0.02 0.02 0.02" shadow="receive: true; cast: true"></a-entity>
             <a-cylinder position="0 1 0" radius="0.015" height="2" color="#fff" shadow="cast: true"></a-cylinder>
             <a-triangle position="0.3 1.8 0" vertex-a="0 0.2 0" vertex-b="0 -0.2 0" vertex-c="-0.3 0 0" color="#ff2222" side="double" shadow="cast: true"></a-triangle>
             <a-cylinder position="0 0.01 0" radius="0.1" height="0.02" color="#000"></a-cylinder>
