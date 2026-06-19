@@ -84,7 +84,36 @@
             }
         };
 
-        // Realistic Sky is now an asset. We don't need the sky-gradient shader anymore.
+        // Component to ensure meshes (like OBJ/GLTF models) cast & receive shadows correctly
+        AFRAME.registerComponent('shadow-helper', {
+            init: function () {
+                const applyShadows = (obj) => {
+                    if (!obj) return;
+                    obj.traverse((node) => {
+                        if (node.isMesh) {
+                            node.castShadow = true;
+                            node.receiveShadow = true;
+                            if (node.material) {
+                                // Prevent weird backface shadow artifacts
+                                node.material.shadowSide = THREE.DoubleSide;
+                            }
+                        }
+                    });
+                };
+                
+                // Try applying shadows to existing mesh
+                applyShadows(this.el.getObject3D('mesh'));
+                
+                // Re-apply if mesh or model changes/loads
+                this.el.addEventListener('object3dset', (evt) => {
+                    applyShadows(this.el.getObject3D('mesh'));
+                });
+                this.el.addEventListener('model-loaded', () => {
+                    applyShadows(this.el.getObject3D('mesh'));
+                });
+            }
+        });
+
         // Terrain with Physics
         AFRAME.registerComponent('procedural-terrain', {
             schema: { size: { default: 200 }, segments: { default: 128 }, amplitude: { default: 6 } },
@@ -129,6 +158,7 @@
                 });
 
                 const mesh = new THREE.Mesh(geometry, mat);
+                mesh.castShadow = true;
                 mesh.receiveShadow = true;
                 this.el.setObject3D('mesh', mesh);
 
@@ -230,7 +260,7 @@
                     treeEl.setAttribute('position', `${x} ${h} ${z}`);
                     treeEl.setAttribute('rotation', `0 ${Math.random() * 360} 0`);
                     treeEl.setAttribute('scale', `${scale} ${scale * (0.8 + Math.random() * 0.4)} ${scale}`);
-                    treeEl.setAttribute('shadow', 'cast: true; receive: true');
+                    treeEl.setAttribute('shadow-helper', '');
                     
                     el.appendChild(treeEl);
                 }
@@ -483,7 +513,7 @@
     </div>
     <div id="crosshair"></div>
 
-    <a-scene physics="debug: false; gravity: -9.8; driver: local" renderer="antialias: true; colorManagement: true;">
+    <a-scene physics="debug: false; gravity: -9.8; driver: local" renderer="antialias: true; colorManagement: true;" shadow="type: pcfsoft">
         <a-assets>
             <a-asset-item id="tree-obj" src="assets/Tree/Tree.obj"></a-asset-item>
             <a-asset-item id="tree-mtl" src="assets/Tree/Tree.mtl"></a-asset-item>
@@ -501,10 +531,9 @@
         
         <!-- Soft, Realistic Lighting -->
         <!-- The Sun -->
-        <a-light type="directional" position="30 50 -20" target="#rig" castShadow="true" intensity="1.2" 
-                 shadow="cameraVisible: false; mapSize: 4096; cameraRight: 60; cameraLeft: -60; cameraTop: 60; cameraBottom: -60; bias: -0.001"></a-light>
+        <a-entity light="type: directional; castShadow: true; intensity: 1.2; shadowCameraVisible: false; shadowMapWidth: 2048; shadowMapHeight: 2048; shadowCameraRight: 100; shadowCameraLeft: -100; shadowCameraTop: 100; shadowCameraBottom: -100; shadowBias: -0.0005" position="30 50 -20" target="#rig"></a-entity>
         <!-- Soft Ambient/Bounce Light -->
-        <a-light type="hemisphere" color="#ffffff" groundColor="#3a702b" intensity="0.4"></a-light>
+        <a-entity light="type: hemisphere; color: #ffffff; groundColor: #2e5c1e; intensity: 0.45"></a-entity>
 
         <!-- Environment Elements -->
         <a-entity procedural-terrain></a-entity>
@@ -512,7 +541,7 @@
         <a-entity forest-generator></a-entity>
 
         <!-- Tee Box Area -->
-        <a-entity obj-model="obj: #rect-grass-obj; mtl: #rect-grass-mtl" position="0 0.01 -0.5" rotation="-90 0 0" scale="0.02 0.02 0.02" shadow="receive: true; cast: true"></a-entity>
+        <a-entity obj-model="obj: #rect-grass-obj; mtl: #rect-grass-mtl" position="0 0.01 -0.5" rotation="-90 0 0" scale="0.02 0.02 0.02" shadow-helper></a-entity>
         <a-cylinder position="0 0.02 -0.5" radius="0.005" height="0.04" color="#d2b48c"></a-cylinder>
 
 
@@ -520,7 +549,7 @@
         <!-- The Hole (Z = -80) -->
         <a-entity position="0 0.01 -80">
             <!-- Circular Grass Patch -->
-            <a-entity obj-model="obj: #circ-grass-obj; mtl: #circ-grass-mtl" position="0 -0.01 0" rotation="-90 0 0" scale="0.02 0.02 0.02" shadow="receive: true; cast: true"></a-entity>
+            <a-entity obj-model="obj: #circ-grass-obj; mtl: #circ-grass-mtl" position="0 -0.01 0" rotation="-90 0 0" scale="0.02 0.02 0.02" shadow-helper></a-entity>
             <a-cylinder position="0 1 0" radius="0.015" height="2" color="#fff" shadow="cast: true"></a-cylinder>
             <a-triangle position="0.3 1.8 0" vertex-a="0 0.2 0" vertex-b="0 -0.2 0" vertex-c="-0.3 0 0" color="#ff2222" side="double" shadow="cast: true"></a-triangle>
             <a-cylinder position="0 0.01 0" radius="0.1" height="0.02" color="#000"></a-cylinder>
