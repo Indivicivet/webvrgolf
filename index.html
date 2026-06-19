@@ -210,19 +210,21 @@
                     let h = simplex.noise2D(x * 0.015, z * 0.015) * 6;
                     h += simplex.noise2D(x * 0.05, z * 0.05) * 1.8;
 
-                    // Randomly pick a tree model
-                    // todo :: tree1 is broken, needs splitting up into individual trees
-                    // since right now it's just a full 3-tree scene
-                    const useTree1 = Math.random() > 999;
+                    // Randomly pick a tree model (all 4 weighted equally)
+                    const treeType = Math.floor(Math.random() * 4);
                     // Adjusted scales (real-world units in meters)
-                    const baseScale = useTree1 ? 0.5 : 3.0;
+                    const baseScale = (treeType > 0) ? 1.0 : 3.0;
                     const scale = baseScale * (0.8 + Math.random() * 0.4);
                     
                     const treeEl = document.createElement('a-entity');
-                    if (useTree1) {
-                        treeEl.setAttribute('obj-model', 'obj: #tree1-obj; mtl: #tree1-mtl');
-                    } else {
+                    if (treeType === 0) {
                         treeEl.setAttribute('obj-model', 'obj: #tree-obj; mtl: #tree-mtl');
+                    } else if (treeType === 1) {
+                        treeEl.setAttribute('gltf-model', '#tree1a-glb');
+                    } else if (treeType === 2) {
+                        treeEl.setAttribute('gltf-model', '#tree1b-glb');
+                    } else {
+                        treeEl.setAttribute('gltf-model', '#tree1c-glb');
                     }
                     
                     treeEl.setAttribute('position', `${x} ${h} ${z}`);
@@ -484,8 +486,9 @@
         <a-assets>
             <a-asset-item id="tree-obj" src="assets/Tree/Tree.obj"></a-asset-item>
             <a-asset-item id="tree-mtl" src="assets/Tree/Tree.mtl"></a-asset-item>
-            <a-asset-item id="tree1-obj" src="assets/Tree1ByTyroSmith/Tree1.obj"></a-asset-item>
-            <a-asset-item id="tree1-mtl" src="assets/Tree1ByTyroSmith/Tree1.mtl"></a-asset-item>
+            <a-asset-item id="tree1a-glb" src="assets/Tree1ByTyroSmith/Tree1A.glb"></a-asset-item>
+            <a-asset-item id="tree1b-glb" src="assets/Tree1ByTyroSmith/Tree1B.glb"></a-asset-item>
+            <a-asset-item id="tree1c-glb" src="assets/Tree1ByTyroSmith/Tree1C.glb"></a-asset-item>
             <a-asset-item id="circ-grass-obj" src="assets/10438_Circular_Grass_Patch_v1_L3.123c72c0e679-bb4b-4162-b0f0-a70f7575d7d8/10438_Circular_Grass_Patch_v1_iterations-2.obj"></a-asset-item>
             <a-asset-item id="circ-grass-mtl" src="assets/10438_Circular_Grass_Patch_v1_L3.123c72c0e679-bb4b-4162-b0f0-a70f7575d7d8/10438_Circular_Grass_Patch_v1_iterations-2.mtl"></a-asset-item>
             <a-asset-item id="rect-grass-obj" src="assets/10450_Rectangular_Grass_Patch_L3.123c827d110a-1347-4381-9208-e4f735762647/10450_Rectangular_Grass_Patch_v1_iterations-2.obj"></a-asset-item>
