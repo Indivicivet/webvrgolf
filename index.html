@@ -138,7 +138,10 @@
         // Volumetric Grass Sprites
         AFRAME.registerComponent('grass-sprites', {
             init: function() {
-                const count = 3000;
+                const count = 0;
+                return;
+                
+                // todo :: can we make grass good? revisit in the future
                 const geo = new THREE.PlaneGeometry(1.5, 1.5);
                 geo.translate(0, 0.75, 0); // Pivot at bottom
 
