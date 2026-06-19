@@ -254,7 +254,7 @@
                     
                     // Create dynamic golf ball entity
                     const newBall = document.createElement('a-sphere');
-                    newBall.setAttribute('radius', '0.043');
+                    newBall.setAttribute('radius', '0.1');
                     newBall.setAttribute('color', '#ffffff');
                     newBall.setAttribute('shadow', 'cast: true');
                     
@@ -270,8 +270,8 @@
                         trailColor: randomColor
                     });
                     
-                    // Initialize physics body on the dynamic ball
-                    newBall.setAttribute('dynamic-body', 'mass: 0.045; shape: sphere; sphereRadius: 0.043; bounce: 0.4; friction: 0.7; linearDamping: 0.2; angularDamping: 0.5');
+                    // Initialize physics body on the dynamic ball (10cm sphereRadius)
+                    newBall.setAttribute('dynamic-body', 'mass: 0.045; shape: sphere; sphereRadius: 0.1; bounce: 0.4; friction: 0.7; linearDamping: 0.2; angularDamping: 0.5');
                     
                     // Set initial position
                     newBall.setAttribute('position', `${spawnPos.x} ${spawnPos.y} ${spawnPos.z}`);
@@ -552,15 +552,15 @@
         const scene = document.querySelector('a-scene');
         const spawnTeeBall = () => {
             const newBall = document.createElement('a-sphere');
-            newBall.setAttribute('radius', '0.043');
+            newBall.setAttribute('radius', '0.1');
             newBall.setAttribute('color', '#ffffff');
             newBall.setAttribute('shadow', 'cast: true');
             newBall.setAttribute('golf-ball', {
                 velocity: {x: 0, y: 0, z: 0},
                 trailColor: '#ff3366'
             });
-            newBall.setAttribute('dynamic-body', 'mass: 0.045; shape: sphere; sphereRadius: 0.043; bounce: 0.4; friction: 0.7; linearDamping: 0.2; angularDamping: 0.5');
-            newBall.setAttribute('position', '0 0.15 -0.5');
+            newBall.setAttribute('dynamic-body', 'mass: 0.045; shape: sphere; sphereRadius: 0.1; bounce: 0.4; friction: 0.7; linearDamping: 0.2; angularDamping: 0.5');
+            newBall.setAttribute('position', '0 0.2 -0.5');
             scene.appendChild(newBall);
         };
         
