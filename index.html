@@ -196,9 +196,12 @@
                     h += simplex.noise2D(x * 0.05, z * 0.05) * 1.8;
 
                     // Randomly pick a tree model
-                    const useTree1 = Math.random() > 0.5;
-                    // The specific downloaded tree might be very large or small, adjusting scale
-                    const scale = (useTree1 ? 0.01 : 0.02) + Math.random() * 0.02;
+                    // todo :: tree1 is broken, needs splitting up into individual trees
+                    // since right now it's just a full 3-tree scene
+                    const useTree1 = Math.random() > 999;
+                    // Adjusted scales (real-world units in meters)
+                    const baseScale = useTree1 ? 0.5 : 3.0;
+                    const scale = baseScale * (0.8 + Math.random() * 0.4);
                     
                     const treeEl = document.createElement('a-entity');
                     if (useTree1) {
