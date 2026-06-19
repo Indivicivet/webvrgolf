@@ -414,9 +414,16 @@
                         cameraRight.y = 0;
                         cameraRight.normalize();
 
-                        // Position marker slightly to the side of the ball (0.35m offset along camera right)
-                        const markerPos = pos.clone().add(cameraRight.multiplyScalar(0.35));
-                        markerPos.y = pos.y + 0.15; // float slightly above ground level
+                        // Keep perceived size constant, and make it significantly larger
+                        const distToCam = pos.distanceTo(cameraPos);
+                        const scale = Math.max(0.1, distToCam * 0.18);
+                        this.markerEl.object3D.scale.set(scale, scale, scale);
+
+                        // Scale the horizontal offset by the same scale factor so the text stays beside the ball
+                        // A-Frame text width is 2.5 (half-width 1.25). We offset by scale * 1.5 to stay clearly beside
+                        const offsetAmount = scale * 1.5;
+                        const markerPos = pos.clone().add(cameraRight.multiplyScalar(offsetAmount));
+                        markerPos.y = pos.y + (scale * 0.15); // float height scales too
                         this.markerEl.object3D.position.copy(markerPos);
 
                         // Horizontal distance from Tee Box (0, 0.01, -0.5)
@@ -425,11 +432,6 @@
 
                         // Face the camera
                         this.markerEl.object3D.lookAt(cameraPos);
-
-                        // Keep perceived size constant, but make it significantly larger
-                        const distToCam = markerPos.distanceTo(cameraPos);
-                        const scale = Math.max(0.1, distToCam * 0.18);
-                        this.markerEl.object3D.scale.set(scale, scale, scale);
                     }
                 }
 
