@@ -231,9 +231,6 @@
                 const fireSound = new Audio('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/sounds/ping_pong_hit.ogg'); // Fallback sound
 
                 const fire = () => {
-                    const ball = document.querySelector('#ball');
-                    if (!ball || !ball.body) return;
-
                     // Play sound
                     fireSound.currentTime = 0;
                     fireSound.play().catch(e => {});
@@ -253,40 +250,184 @@
                     }
 
                     // Offset the ball slightly forward so it doesn't spawn inside the cannon
-                    const spawnPos = position.clone().add(direction.clone().multiplyScalar(0.5));
+                    const spawnPos = position.clone().add(direction.clone().multiplyScalar(0.6));
                     
-                    // Teleport ball to cannon tip
-                    ball.body.position.copy(spawnPos);
-                    ball.body.velocity.set(0,0,0);
-                    ball.body.angularVelocity.set(0,0,0);
-
-                    // Apply massive impulse along the normal tracking line
-                    const mass = ball.body.mass;
-                    const force = new CANNON.Vec3(
-                        direction.x * this.data.power * mass,
-                        direction.y * this.data.power * mass,
-                        direction.z * this.data.power * mass
-                    );
+                    // Create dynamic golf ball entity
+                    const newBall = document.createElement('a-sphere');
+                    newBall.setAttribute('radius', '0.043');
+                    newBall.setAttribute('color', '#ffffff');
+                    newBall.setAttribute('shadow', 'cast: true');
                     
-                    ball.body.applyImpulse(force, new CANNON.Vec3(0, 0, 0));
+                    // Setup velocity to pass to our component
+                    const vel = direction.clone().multiplyScalar(this.data.power);
+                    
+                    // Generate random bright neon color for the trail
+                    const colors = ['#ff3366', '#33ff66', '#3366ff', '#ffff33', '#ff9933', '#cc33ff'];
+                    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    newBall.setAttribute('golf-ball', {
+                        velocity: vel,
+                        trailColor: randomColor
+                    });
+                    
+                    // Initialize physics body on the dynamic ball
+                    newBall.setAttribute('dynamic-body', 'mass: 0.045; shape: sphere; sphereRadius: 0.043; bounce: 0.4; friction: 0.7; linearDamping: 0.2; angularDamping: 0.5');
+                    
+                    // Set initial position
+                    newBall.setAttribute('position', `${spawnPos.x} ${spawnPos.y} ${spawnPos.z}`);
+                    
+                    el.sceneEl.appendChild(newBall);
                 };
 
                 // VR Trigger
                 el.addEventListener('triggerdown', fire);
                 
-                // Desktop Mouse Click
-                document.addEventListener('mousedown', (e) => {
-                    if(!document.querySelector('a-scene').is('vr-mode')) fire();
-                });
+                // Desktop Mouse Click (only register and fire if this is the desktop cannon instance)
+                if (el.id === 'desktop-cannon') {
+                    document.addEventListener('mousedown', (e) => {
+                        if(!document.querySelector('a-scene').is('vr-mode')) fire();
+                    });
+                }
             }
         });
 
-        // Reset ball bounds
-        AFRAME.registerComponent('ball-reset', {
-            tick: function () {
-                if (this.el.body && this.el.body.position.y < -15) {
-                    this.el.body.position.set(0, 0.15, -0.5);
-                    this.el.body.velocity.set(0,0,0);
+        // Dynamic Golf Ball Component (Handles physics, trail, HUD marker, and auto-cleanup)
+        AFRAME.registerComponent('golf-ball', {
+            schema: {
+                velocity: { type: 'vec3' },
+                trailColor: { default: '#ff3366' }
+            },
+            init: function() {
+                this.points = [];
+                this.maxPoints = 60;
+                this.tickCount = 0;
+                this.velocityApplied = false;
+
+                // Create the trail line in Three.js (using dynamic buffer geometry)
+                const geometry = new THREE.BufferGeometry();
+                const positions = new Float32Array(this.maxPoints * 3);
+                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                
+                const material = new THREE.LineBasicMaterial({
+                    color: new THREE.Color(this.data.trailColor),
+                    transparent: true,
+                    opacity: 0.8,
+                    linewidth: 3
+                });
+                
+                this.trailLine = new THREE.Line(geometry, material);
+                this.el.sceneEl.object3D.add(this.trailLine);
+
+                // Create the Distance HUD Marker
+                const marker = document.createElement('a-entity');
+
+                // Glowing border plane (slightly larger, at the back)
+                const border = document.createElement('a-plane');
+                border.setAttribute('width', '1.24');
+                border.setAttribute('height', '0.44');
+                border.setAttribute('color', this.data.trailColor);
+                border.setAttribute('material', 'shader: flat; depthTest: true');
+                border.setAttribute('position', '0 0 -0.005');
+                marker.appendChild(border);
+
+                // Background plane (slightly smaller, in front)
+                const bg = document.createElement('a-plane');
+                bg.setAttribute('width', '1.2');
+                bg.setAttribute('height', '0.4');
+                bg.setAttribute('color', '#0a1e0f');
+                bg.setAttribute('material', 'opacity: 0.85; transparent: true; shader: flat; depthTest: true');
+                bg.setAttribute('position', '0 0 0');
+                marker.appendChild(bg);
+
+                // Text (using the robust default SDF Roboto font, in front of the background)
+                const text = document.createElement('a-entity');
+                text.setAttribute('text', {
+                    value: '0.0 m',
+                    align: 'center',
+                    color: '#ffffff',
+                    width: 2.5
+                });
+                text.setAttribute('position', '0 0 0.005');
+                marker.appendChild(text);
+
+                this.el.sceneEl.appendChild(marker);
+                this.markerEl = marker;
+                this.markerTextEl = text;
+
+                this.spawnTime = Date.now();
+            },
+            tick: function() {
+                if (!this.el.body) return;
+
+                const pos = this.el.object3D.position;
+
+                // Ensure initial velocity is applied to the CANNON body in the simulation step
+                if (!this.velocityApplied) {
+                    this.el.body.wakeUp();
+                    const vel = this.data.velocity;
+                    this.el.body.velocity.set(vel.x, vel.y, vel.z);
+                    this.velocityApplied = true;
+                }
+
+                // Update Trail Points
+                this.tickCount++;
+                if (this.tickCount % 2 === 0) {
+                    this.points.push(new THREE.Vector3().copy(pos));
+                    if (this.points.length > this.maxPoints) {
+                        this.points.shift();
+                    }
+                    
+                    const positionAttribute = this.trailLine.geometry.attributes.position;
+                    for (let i = 0; i < this.maxPoints; i++) {
+                        const pt = this.points[i] || pos;
+                        positionAttribute.setXYZ(i, pt.x, pt.y, pt.z);
+                    }
+                    positionAttribute.needsUpdate = true;
+                    // Recompute bounding box and sphere so Three.js doesn't frustum-cull the line
+                    this.trailLine.geometry.computeBoundingBox();
+                    this.trailLine.geometry.computeBoundingSphere();
+                    this.trailLine.geometry.setDrawRange(0, this.points.length);
+                }
+
+                // Update Distance HUD Marker
+                if (this.markerEl && this.markerTextEl) {
+                    // Position marker above the ball
+                    const markerPos = pos.clone().add(new THREE.Vector3(0, 0.4, 0));
+                    this.markerEl.object3D.position.copy(markerPos);
+
+                    // Horizontal distance from Tee Box (0, 0.01, -0.5)
+                    const distFromTee = Math.hypot(pos.x, pos.z + 0.5);
+                    this.markerTextEl.setAttribute('text', 'value', `${distFromTee.toFixed(1)} m`);
+
+                    // Billboarding: Look at camera so the front faces the user (no rotateY required)
+                    const camera = this.el.sceneEl.camera;
+                    if (camera) {
+                        const cameraPos = new THREE.Vector3();
+                        camera.getWorldPosition(cameraPos);
+                        this.markerEl.object3D.lookAt(cameraPos);
+
+                        const distToCam = markerPos.distanceTo(cameraPos);
+                        const scale = Math.max(0.1, distToCam * 0.08);
+                        this.markerEl.object3D.scale.set(scale, scale, scale);
+                    }
+                }
+
+                // Out of bounds or lifetime cleanup
+                if (pos.y < -15 || (Date.now() - this.spawnTime > 20000)) {
+                    this.destroyBall();
+                }
+            },
+            destroyBall: function() {
+                if (this.trailLine) {
+                    this.el.sceneEl.object3D.remove(this.trailLine);
+                    this.trailLine.geometry.dispose();
+                    this.trailLine.material.dispose();
+                }
+                if (this.markerEl && this.markerEl.parentNode) {
+                    this.markerEl.parentNode.removeChild(this.markerEl);
+                }
+                if (this.el.parentNode) {
+                    this.el.parentNode.removeChild(this.el);
                 }
             }
         });
@@ -335,11 +476,7 @@
         <a-entity obj-model="obj: #rect-grass-obj; mtl: #rect-grass-mtl" position="0 0.01 -0.5" rotation="-90 0 0" scale="0.02 0.02 0.02" shadow="receive: true; cast: true"></a-entity>
         <a-cylinder position="0 0.02 -0.5" radius="0.005" height="0.04" color="#d2b48c"></a-cylinder>
 
-        <!-- Golf Ball (Physics heavily tuned for cannon speed) -->
-        <a-sphere id="ball" 
-                  dynamic-body="mass: 0.045; shape: sphere; sphereRadius: 0.043; bounce: 0.4; friction: 0.7; linearDamping: 0.2; angularDamping: 0.5" 
-                  position="0 0.1 -0.5" radius="0.043" color="#ffffff" shadow="cast: true" ball-reset>
-        </a-sphere>
+
 
         <!-- The Hole (Z = -80) -->
         <a-entity position="0 0.01 -80">
@@ -387,6 +524,28 @@
             document.querySelector('#desktop-cannon').setAttribute('visible', 'true');
             document.querySelector('#desktop-cannon').setAttribute('golf-cannon', '');
         });
+
+        // Spawn initial ball on the tee box once the scene is loaded
+        const scene = document.querySelector('a-scene');
+        const spawnTeeBall = () => {
+            const newBall = document.createElement('a-sphere');
+            newBall.setAttribute('radius', '0.043');
+            newBall.setAttribute('color', '#ffffff');
+            newBall.setAttribute('shadow', 'cast: true');
+            newBall.setAttribute('golf-ball', {
+                velocity: {x: 0, y: 0, z: 0},
+                trailColor: '#ff3366'
+            });
+            newBall.setAttribute('dynamic-body', 'mass: 0.045; shape: sphere; sphereRadius: 0.043; bounce: 0.4; friction: 0.7; linearDamping: 0.2; angularDamping: 0.5');
+            newBall.setAttribute('position', '0 0.15 -0.5');
+            scene.appendChild(newBall);
+        };
+        
+        if (scene.hasLoaded) {
+            spawnTeeBall();
+        } else {
+            scene.addEventListener('loaded', spawnTeeBall);
+        }
     </script>
 </body>
 </html>
