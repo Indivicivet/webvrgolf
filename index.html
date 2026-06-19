@@ -316,12 +316,12 @@
         <!-- Beautiful Skybox via downloaded asset -->
         <a-sky src="assets/sky.jpg"></a-sky>
         
-        <!-- Extremely Bright, Realistic Lighting -->
+        <!-- Soft, Realistic Lighting -->
         <!-- The Sun -->
-        <a-light type="directional" position="30 50 -20" target="#rig" castShadow="true" intensity="2.5" 
+        <a-light type="directional" position="30 50 -20" target="#rig" castShadow="true" intensity="1.2" 
                  shadow="cameraVisible: false; mapSize: 4096; cameraRight: 60; cameraLeft: -60; cameraTop: 60; cameraBottom: -60; bias: -0.001"></a-light>
         <!-- Soft Ambient/Bounce Light -->
-        <a-light type="hemisphere" color="#ffffff" groundColor="#3a702b" intensity="0.6"></a-light>
+        <a-light type="hemisphere" color="#ffffff" groundColor="#3a702b" intensity="0.4"></a-light>
 
         <!-- Environment Elements -->
         <a-entity procedural-terrain></a-entity>
