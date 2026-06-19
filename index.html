@@ -239,7 +239,7 @@
 
         // The New Golf Cannon Mechanic
         AFRAME.registerComponent('golf-cannon', {
-            schema: { power: { default: 25.0 } }, // Cannon is strong!
+            schema: { power: { default: 50.0 } }, // Cannon max power is 50
             init: function () {
                 const el = this.el;
                 const fireSound = new Audio('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/sounds/ping_pong_hit.ogg'); // Fallback sound
@@ -272,8 +272,9 @@
                     newBall.setAttribute('color', '#ffffff');
                     newBall.setAttribute('shadow', 'cast: true');
                     
-                    // Setup velocity to pass to our component
-                    const vel = direction.clone().multiplyScalar(this.data.power);
+                    // Setup randomized velocity (40% to 100% of max power)
+                    const randomizedPower = this.data.power * (0.4 + Math.random() * 0.6);
+                    const vel = direction.clone().multiplyScalar(randomizedPower);
                     
                     // Generate random bright neon color for the trail
                     const colors = ['#ff3366', '#33ff66', '#3366ff', '#ffff33', '#ff9933', '#cc33ff'];
