@@ -40,6 +40,7 @@
 
     <script>
         const simplex = new SimplexNoise('vr-golf-seed');
+        const ONLY_SPAWN_TREES_FORWARDS = true;
 
         // Asset Generation Utilities (Canvas-based to avoid external dependencies breaking)
         const AssetGen = {
@@ -184,13 +185,24 @@
         // Realistic Forest Generator using OBJ models
         AFRAME.registerComponent('forest-generator', {
             init: function () {
-                const count = 150; // Reduced count slightly since these are individual entities
+                let count = 150;
+                if (ONLY_SPAWN_TREES_FORWARDS) {
+                    count = Math.floor(count / 2);
+                }
                 const el = this.el;
 
                 // Load tree geometries via standard A-Frame entities using our preloaded assets
                 for (let i = 0; i < count; i++) {
                     let x = (Math.random() - 0.5) * 200;
-                    let z = (Math.random() - 0.5) * 200;
+                    
+                    let z;
+                    if (ONLY_SPAWN_TREES_FORWARDS) {
+                        // The golf hole is in the negative Z direction (z = -80).
+                        // So spawning forwards (towards the hole) means z < 0.
+                        z = -Math.random() * 150;
+                    } else {
+                        z = (Math.random() - 0.5) * 200;
+                    }
                     
                     if (z < 30 && z > -150 && Math.abs(x) < 20) x = (x > 0) ? x + 20 : x - 20;
                     if (Math.hypot(x, z) < 10) continue;
