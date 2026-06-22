@@ -76,11 +76,11 @@ public class GolfCannon : MonoBehaviour
         var device = InputDevices.GetDeviceAtXRNode(controllerNode);
         if (device.isValid)
         {
-            if (device.TryGetFeatureValue(CommonUsages.devicePosition, out Vector3 pos))
+            if (device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.devicePosition, out Vector3 pos))
             {
                 transform.position = pos;
             }
-            if (device.TryGetFeatureValue(CommonUsages.deviceRotation, out Quaternion rot))
+            if (device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.deviceRotation, out Quaternion rot))
             {
                 transform.rotation = rot;
             }
@@ -101,11 +101,11 @@ public class GolfCannon : MonoBehaviour
         var device = InputDevices.GetDeviceAtXRNode(controllerNode);
         if (device.isValid)
         {
-            if (device.TryGetFeatureValue(CommonUsages.triggerButton, out bool pressed))
+            if (device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.triggerButton, out bool pressed))
             {
                 return pressed;
             }
-            if (device.TryGetFeatureValue(CommonUsages.trigger, out float triggerVal))
+            if (device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.trigger, out float triggerVal))
             {
                 return triggerVal > 0.5f;
             }
