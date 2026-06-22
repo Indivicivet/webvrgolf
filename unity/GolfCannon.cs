@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.XR;
 
 public class GolfCannon : MonoBehaviour
 {
@@ -19,12 +18,15 @@ public class GolfCannon : MonoBehaviour
     public AudioSource audioSource;
     public AudioClip fireClip;
 
-    [Header("Input Options")]
-    [Tooltip("Action Reference for the trigger button (e.g., standard XRI RightHand Activate).")]
+    [Header("Input & Tracking Actions")]
+    [Tooltip("Global Action Reference for the trigger button (e.g. XRI RightHand Activate).")]
     public InputActionProperty fireAction;
-
-    [Tooltip("The XR controller node to read inputs and tracking from.")]
-    public XRNode controllerNode = XRNode.RightHand;
+    
+    [Tooltip("Global Action Reference for controller position tracking.")]
+    public InputActionProperty positionAction;
+    
+    [Tooltip("Global Action Reference for controller rotation tracking.")]
+    public InputActionProperty rotationAction;
 
     private bool wasTriggerPressedLastFrame = false;
 
@@ -39,17 +41,31 @@ public class GolfCannon : MonoBehaviour
 
     private void OnEnable()
     {
-        if (fireAction.action != null)
-        {
-            fireAction.action.Enable();
-        }
+        EnableAction(fireAction);
+        EnableAction(positionAction);
+        EnableAction(rotationAction);
     }
 
     private void OnDisable()
     {
-        if (fireAction.action != null)
+        DisableAction(fireAction);
+        DisableAction(positionAction);
+        DisableAction(rotationAction);
+    }
+
+    private void EnableAction(InputActionProperty actionProperty)
+    {
+        if (actionProperty.action != null)
         {
-            fireAction.action.Disable();
+            actionProperty.action.Enable();
+        }
+    }
+
+    private void DisableAction(InputActionProperty actionProperty)
+    {
+        if (actionProperty.action != null)
+        {
+            actionProperty.action.Disable();
         }
     }
 
@@ -67,50 +83,29 @@ public class GolfCannon : MonoBehaviour
 
     private void LateUpdate()
     {
-        // Always track the controller position and rotation in world space
         UpdateTrackingPose();
     }
 
     private void UpdateTrackingPose()
     {
-        var device = InputDevices.GetDeviceAtXRNode(controllerNode);
-        if (device.isValid)
+        if (positionAction.action != null && positionAction.action.enabled)
         {
-            if (device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.devicePosition, out Vector3 pos))
-            {
-                transform.position = pos;
-            }
-            if (device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.deviceRotation, out Quaternion rot))
-            {
-                transform.rotation = rot;
-            }
+            transform.position = positionAction.action.ReadValue<Vector3>();
+        }
+        if (rotationAction.action != null && rotationAction.action.enabled)
+        {
+            transform.rotation = rotationAction.action.ReadValue<Quaternion>();
         }
     }
 
     private bool CheckTriggerInput()
     {
-        // 1. Try modern Input System Action
         if (fireAction.action != null && fireAction.action.enabled)
         {
             var val = fireAction.action.ReadValue<float>();
             if (val > 0.5f) return true;
             if (fireAction.action.triggered) return true;
         }
-
-        // 2. Fallback to direct legacy hardware polling
-        var device = InputDevices.GetDeviceAtXRNode(controllerNode);
-        if (device.isValid)
-        {
-            if (device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.triggerButton, out bool pressed))
-            {
-                return pressed;
-            }
-            if (device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.trigger, out float triggerVal))
-            {
-                return triggerVal > 0.5f;
-            }
-        }
-
         return false;
     }
 
