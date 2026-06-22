@@ -12,24 +12,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
     
     <script>
-        // Patch A-Frame look-controls to use right-click (button 2) instead of left-click (button 0)
-        if (typeof AFRAME !== 'undefined' && AFRAME.components['look-controls']) {
-            const originalOnMouseDown = AFRAME.components['look-controls'].Component.prototype.onMouseDown;
-            AFRAME.components['look-controls'].Component.prototype.onMouseDown = function (evt) {
-                if (evt.button !== 2) { return; }
-                // Create a proxy of the event where button reports as 0 to bypass the primary button check in A-Frame's handler
-                const fakedEvt = new Proxy(evt, {
-                    get: function (target, prop) {
-                        if (prop === 'button') { return 0; }
-                        const val = target[prop];
-                        return typeof val === 'function' ? val.bind(target) : val;
-                    }
-                });
-                originalOnMouseDown.call(this, fakedEvt);
-            };
-        }
-
-        // Disable context menu globally so right-clicking to look around works smoothly
+        // Disable context menu globally so right-clicking to fire works smoothly without menu popups
         window.addEventListener('contextmenu', (e) => {
             e.preventDefault();
         });
@@ -354,7 +337,7 @@
                 // Desktop Mouse Click (only register and fire if this is the desktop cannon instance)
                 if (el.id === 'desktop-cannon') {
                     this.onMousedown = (e) => {
-                        if (e.button !== 0) return;
+                        if (e.button !== 2) return;
                         if (!document.querySelector('a-scene').is('vr-mode')) fire();
                     };
                     this.onKeydown = (e) => {
@@ -548,7 +531,7 @@
             <h1>WebVR Golf <span style="font-size: 14px; color: #aaa;">Cannon Edition</span></h1>
             <p>Welcome to the procedural course.</p>
             <div class="badge"><strong>VR</strong> Pull the Right Trigger to fire a ball from your cannon.</div>
-            <div class="badge"><strong>Desktop</strong> Right-click & drag to look. Left-click or Spacebar to fire.</div>
+            <div class="badge"><strong>Desktop</strong> Left-click & drag to look. Right-click or Spacebar to fire.</div>
         </div>
     </div>
     <div id="crosshair"></div>
