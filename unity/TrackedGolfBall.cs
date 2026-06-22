@@ -39,7 +39,7 @@ public class TrackedGolfBall : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         if (rb != null)
         {
-            rb.velocity = initialVelocity;
+            rb.linearVelocity = initialVelocity;
             velocityApplied = true;
         }
         
@@ -70,7 +70,7 @@ public class TrackedGolfBall : MonoBehaviour
         // Secondary velocity application in case Rigidbody initialization is delayed
         if (!velocityApplied && rb != null)
         {
-            rb.velocity = initialVelocity;
+            rb.linearVelocity = initialVelocity;
             velocityApplied = true;
         }
     }
