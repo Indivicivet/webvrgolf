@@ -84,11 +84,11 @@ public class GolfCannon : MonoBehaviour
             var device = InputDevices.GetDeviceAtXRNode(controllerNode);
             if (device.isValid)
             {
-                if (device.TryGetFeatureValue(CommonUsages.triggerButton, out bool pressed))
+                if (device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.triggerButton, out bool pressed))
                 {
                     return pressed;
                 }
-                if (device.TryGetFeatureValue(CommonUsages.trigger, out float triggerVal))
+                if (device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.trigger, out float triggerVal))
                 {
                     return triggerVal > 0.5f;
                 }
