@@ -1,4 +1,5 @@
 using UnityEngine;
+using TMPro;
 
 [RequireComponent(typeof(Rigidbody))]
 public class TrackedGolfBall : MonoBehaviour
@@ -8,8 +9,8 @@ public class TrackedGolfBall : MonoBehaviour
     public TrailRenderer trailRenderer;
     
     [Header("Distance HUD Settings")]
-    [Tooltip("The TextMesh component showing the actual distance.")]
-    public TextMesh distanceMarkerText;
+    [Tooltip("The TextMeshPro (3D Text) component showing the actual distance.")]
+    public TextMeshPro distanceMarkerText;
     
     [Tooltip("The GameObject representing the distance marker container. Will be unparented on launch to prevent rotation.")]
     public GameObject distanceMarker;
@@ -121,7 +122,7 @@ public class TrackedGolfBall : MonoBehaviour
 
             // Make the marker billboard towards the camera
             distanceMarker.transform.LookAt(cameraPos);
-            // Rotated 180 degrees because TextMesh faces local Z direction (reverse of LookAt)
+            // Rotated 180 degrees because TextMeshPro faces local Z direction (reverse of LookAt)
             distanceMarker.transform.Rotate(0, 180f, 0);
         }
     }
