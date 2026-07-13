@@ -18,16 +18,10 @@ public class GolfCannon : MonoBehaviour
     public AudioSource audioSource;
     public AudioClip fireClip;
 
-    [Header("Input & Tracking Actions")]
+    [Header("Input Actions")]
     [Tooltip("Global Action Reference for the trigger button (e.g. XRI RightHand Activate).")]
     public InputActionProperty fireAction;
     
-    [Tooltip("Global Action Reference for controller position tracking.")]
-    public InputActionProperty positionAction;
-    
-    [Tooltip("Global Action Reference for controller rotation tracking.")]
-    public InputActionProperty rotationAction;
-
     private bool wasTriggerPressedLastFrame = false;
 
     [Header("Autofire Hack")]
@@ -51,15 +45,11 @@ public class GolfCannon : MonoBehaviour
     private void OnEnable()
     {
         EnableAction(fireAction);
-        EnableAction(positionAction);
-        EnableAction(rotationAction);
     }
 
     private void OnDisable()
     {
         DisableAction(fireAction);
-        DisableAction(positionAction);
-        DisableAction(rotationAction);
     }
 
     private void EnableAction(InputActionProperty actionProperty)
@@ -93,23 +83,6 @@ public class GolfCannon : MonoBehaviour
         {
             FireBall();
             nextAutoFireTime = Time.time + autoFireInterval;
-        }
-    }
-
-    private void LateUpdate()
-    {
-        UpdateTrackingPose();
-    }
-
-    private void UpdateTrackingPose()
-    {
-        if (positionAction.action != null && positionAction.action.enabled)
-        {
-            transform.position = positionAction.action.ReadValue<Vector3>();
-        }
-        if (rotationAction.action != null && rotationAction.action.enabled)
-        {
-            transform.rotation = rotationAction.action.ReadValue<Quaternion>();
         }
     }
 
