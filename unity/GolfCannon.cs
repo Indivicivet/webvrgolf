@@ -30,6 +30,15 @@ public class GolfCannon : MonoBehaviour
 
     private bool wasTriggerPressedLastFrame = false;
 
+    [Header("Autofire Hack")]
+    [Tooltip("If enabled, the cannon will fire automatically at set intervals.")]
+    public bool autoFire = false;
+
+    [Tooltip("Interval in seconds between automatic shots.")]
+    public float autoFireInterval = 1.5f;
+
+    private float nextAutoFireTime = 0f;
+
     private void Awake()
     {
         // Deactivate the template so it doesn't show up in the scene at startup
@@ -79,6 +88,12 @@ public class GolfCannon : MonoBehaviour
         }
 
         wasTriggerPressedLastFrame = isTriggerPressed;
+
+        if (autoFire && Time.time >= nextAutoFireTime)
+        {
+            FireBall();
+            nextAutoFireTime = Time.time + autoFireInterval;
+        }
     }
 
     private void LateUpdate()
