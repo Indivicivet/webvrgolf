@@ -15,10 +15,13 @@ public class TrackedGolfBall : MonoBehaviour
     [Tooltip("The GameObject representing the distance marker container. Will be unparented on launch to prevent rotation.")]
     public GameObject distanceMarker;
 
-    [Header("Distance HUD Scale Slider")]
+    [Header("Distance HUD Scale Settings")]
     [Tooltip("The absolute scale of the text container at 1 meter distance from the camera.")]
     [Range(0.001f, 0.1f)]
     public float scaleAtOneMeter = 0.01f;
+
+    [Tooltip("The horizontal shift multiplier to position the text beside the ball. Scales with the sign size.")]
+    public float horizontalShift = 2.0f;
 
     private Vector3 teePosition;
     private float spawnTime;
@@ -121,7 +124,7 @@ public class TrackedGolfBall : MonoBehaviour
             distanceMarker.transform.localScale = new Vector3(scaleFactor, scaleFactor, scaleFactor);
 
             // Position marker beside the ball (offset along horizontal camera right)
-            float offsetAmount = scaleFactor * 1.5f;
+            float offsetAmount = scaleFactor * horizontalShift;
             Vector3 markerPos = ballPos + cameraRight * offsetAmount;
             markerPos.y = ballPos.y + (scaleFactor * 0.15f); // Scale vertical float height
             distanceMarker.transform.position = markerPos;
