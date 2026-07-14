@@ -15,6 +15,11 @@ public class TrackedGolfBall : MonoBehaviour
     [Tooltip("The GameObject representing the distance marker container. Will be unparented on launch to prevent rotation.")]
     public GameObject distanceMarker;
 
+    [Header("Distance HUD Scale Slider")]
+    [Tooltip("The absolute scale of the text container at 1 meter distance from the camera.")]
+    [Range(0.001f, 0.1f)]
+    public float scaleAtOneMeter = 0.01f;
+
     private Vector3 teePosition;
     private float spawnTime;
     private Rigidbody rb;
@@ -111,13 +116,14 @@ public class TrackedGolfBall : MonoBehaviour
 
             // Keep perceived size constant as the ball gets farther from the camera
             float distToCam = Vector3.Distance(ballPos, cameraPos);
-            float scale = Mathf.Max(0.1f, distToCam * 0.18f);
-            distanceMarker.transform.localScale = new Vector3(scale, scale, scale);
+            float effectiveDistance = Mathf.Max(0.5f, distToCam);
+            float scaleFactor = effectiveDistance * scaleAtOneMeter;
+            distanceMarker.transform.localScale = new Vector3(scaleFactor, scaleFactor, scaleFactor);
 
             // Position marker beside the ball (offset along horizontal camera right)
-            float offsetAmount = scale * 1.5f;
+            float offsetAmount = scaleFactor * 1.5f;
             Vector3 markerPos = ballPos + cameraRight * offsetAmount;
-            markerPos.y = ballPos.y + (scale * 0.15f); // Scale vertical float height
+            markerPos.y = ballPos.y + (scaleFactor * 0.15f); // Scale vertical float height
             distanceMarker.transform.position = markerPos;
 
             // Make the marker billboard towards the camera
